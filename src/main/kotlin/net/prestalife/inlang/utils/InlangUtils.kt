@@ -1,6 +1,5 @@
 package net.prestalife.inlang.utils
 
-import com.intellij.codeInsight.actions.ReformatCodeProcessor
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Document
@@ -10,8 +9,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.findDocument
 import com.intellij.openapi.vfs.findFile
 import com.intellij.openapi.vfs.findPsiFile
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -31,7 +30,13 @@ class InlangUtils {
                 .take(20)
         }
 
-        fun saveMessage(project: Project, editor: Editor, element:PsiElement, fnName: String, selection: String): Pair<Boolean, String> {
+        fun saveMessage(
+            project: Project,
+            editor: Editor,
+            element: PsiElement,
+            fnName: String,
+            selection: String
+        ): Pair<Boolean, String> {
             val psiFile = element.containingFile
             var file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
 
@@ -65,24 +70,24 @@ class InlangUtils {
             val document: Document = jsonFile.findDocument() ?: return Pair(false, "No changes made")
             CommandProcessor.getInstance().executeCommand(project, {
                 ApplicationManager.getApplication().runWriteAction {
-
-                    // find last index of '}'
                     val lastBraceIndex = document.text.lastIndexOf('}')
-
                     document.insertString(lastBraceIndex, str)
 
                     val jsonPsiFile = jsonFile.findPsiFile(project) ?: return@runWriteAction
-
-                    val codeStyleManager = CodeStyleManager.getInstance(project);
+                    val codeStyleManager = CodeStyleManager.getInstance(project)
                     codeStyleManager.reformatText(jsonPsiFile, lastBraceIndex, lastBraceIndex + str.length)
 
                     val message = "{m.$fnName()}"
-
                     editor.document.replaceString(
                         element.parent.textRange.startOffset,
                         element.parent.textRange.endOffset,
                         message
                     )
+
+                    PsiDocumentManager.getInstance(project).commitDocument(editor.document);
+                    PsiDocumentManager.getInstance(project).commitDocument(document);
+
+                    Importer.insertImport(editor, psiFile, "import * as m from '\$lib/paraglide/messages';")
                 }
             }, "Extract Inlang Message", null)
 

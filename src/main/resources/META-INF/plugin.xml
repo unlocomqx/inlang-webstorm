@@ -35,6 +35,5 @@
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
-        <importCandidatesFactory implementation="net.prestalife.inlang.intentions.InlangImportCandidatesFactory"/>
     </extensions>
 </idea-plugin>
