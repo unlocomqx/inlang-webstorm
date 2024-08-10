@@ -5,9 +5,8 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.findFile
-import com.intellij.psi.PsiDocumentManager
+import com.intellij.openapi.vfs.findPsiFile
 import com.intellij.psi.PsiFile
-import com.intellij.testFramework.utils.vfs.getDocument
 import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import java.util.*
@@ -61,8 +60,8 @@ class InlangUtils {
             jsonFile.setBinaryContent(newText.toByteArray())
 
             WriteCommandAction.runWriteCommandAction(project) {
-                ReformatCodeProcessor(psiFile, false).run()
-                PsiDocumentManager.getInstance(project).commitDocument(jsonFile.getDocument())
+                val jsonPsiFile = jsonFile.findPsiFile(project) ?: return@runWriteCommandAction
+                ReformatCodeProcessor(jsonPsiFile, false).run()
             }
 
             return Pair(true, "Message saved")
