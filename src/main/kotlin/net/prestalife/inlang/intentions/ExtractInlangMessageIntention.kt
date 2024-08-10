@@ -21,7 +21,7 @@ class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
-        val selection = editor?.selectionModel?.selectedText ?: element.parent.text
+        val selection = editor?.selectionModel?.selectedText?.trim() ?: element.parent.text.trim()
 
         if (selection.isEmpty()) {
             return
