@@ -6,6 +6,8 @@
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
     <name>Inlang-webstorm</name>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>JavaScript</depends>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="prestalife.solutions@gmail.com" url="https://www.prestalife.net">TuniSoft</vendor>
@@ -30,5 +32,9 @@
             <className>net.prestalife.inlang.intentions.ExtractInlangMessageIntention</className>
             <category>Inlang Intentions</category>
         </intentionAction>
+    </extensions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <importCandidatesFactory implementation="net.prestalife.inlang.intentions.InlangImportCandidatesFactory"/>
     </extensions>
 </idea-plugin>

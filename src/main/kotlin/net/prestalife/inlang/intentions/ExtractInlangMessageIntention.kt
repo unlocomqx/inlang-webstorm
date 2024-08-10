@@ -27,23 +27,23 @@ class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
             return
         }
 
+        if(editor == null) {
+            return
+        }
+
         val fnName = InlangUtils.generateFunctionName(selection)
-        val message = "{m.$fnName()}"
 
         if (element.containingFile != null) {
             val result = InlangUtils.saveMessage(
                 project,
-                element.containingFile,
+                editor,
+                element,
                 fnName,
                 selection
             )
 
             if (result.first) {
-                editor?.document?.replaceString(
-                    element.parent.textRange.startOffset,
-                    element.parent.textRange.endOffset,
-                    message
-                )
+
             } else {
                 // show error message
 

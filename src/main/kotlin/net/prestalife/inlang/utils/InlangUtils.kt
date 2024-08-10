@@ -1,14 +1,20 @@
 package net.prestalife.inlang.utils
 
 import com.intellij.codeInsight.actions.ReformatCodeProcessor
-import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.findDocument
 import com.intellij.openapi.vfs.findFile
 import com.intellij.openapi.vfs.findPsiFile
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import kotlinx.serialization.*
-import kotlinx.serialization.json.*
+import com.intellij.psi.codeStyle.CodeStyleManager
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.util.*
 
 
@@ -25,7 +31,8 @@ class InlangUtils {
                 .take(20)
         }
 
-        fun saveMessage(project: Project, psiFile: PsiFile, fnName: String, selection: String): Pair<Boolean, String> {
+        fun saveMessage(project: Project, editor: Editor, element:PsiElement, fnName: String, selection: String): Pair<Boolean, String> {
+            val psiFile = element.containingFile
             var file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
 
             val folderName = "project.inlang"
@@ -55,14 +62,30 @@ class InlangUtils {
 
             val str = ",\"$fnName\": \"$selection\""
 
-            val text = jsonFile.inputStream.reader().readText()
-            val newText = text.replaceRange(text.lastIndexOf('}'), text.length, "$str\n}")
-            jsonFile.setBinaryContent(newText.toByteArray())
+            val document: Document = jsonFile.findDocument() ?: return Pair(false, "No changes made")
+            CommandProcessor.getInstance().executeCommand(project, {
+                ApplicationManager.getApplication().runWriteAction {
 
-            WriteCommandAction.runWriteCommandAction(project) {
-                val jsonPsiFile = jsonFile.findPsiFile(project) ?: return@runWriteCommandAction
-                ReformatCodeProcessor(jsonPsiFile, false).run()
-            }
+                    // find last index of '}'
+                    val lastBraceIndex = document.text.lastIndexOf('}')
+
+                    document.insertString(lastBraceIndex, str)
+
+                    val jsonPsiFile = jsonFile.findPsiFile(project) ?: return@runWriteAction
+
+                    val codeStyleManager = CodeStyleManager.getInstance(project);
+                    codeStyleManager.reformatText(jsonPsiFile, lastBraceIndex, lastBraceIndex + str.length)
+
+                    val message = "{m.$fnName()}"
+
+                    editor.document.replaceString(
+                        element.parent.textRange.startOffset,
+                        element.parent.textRange.endOffset,
+                        message
+                    )
+                }
+            }, "Extract Inlang Message", null)
+
 
             return Pair(true, "Message saved")
         }

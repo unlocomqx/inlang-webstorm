@@ -1,3 +1,5 @@
+fun properties(key: String) = project.findProperty(key).toString()
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.24"
@@ -5,8 +7,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.6.10"
 }
 
-group = "net.prestalife"
-version = "1.0-SNAPSHOT"
+group = properties("pluginGroup")
+version = properties("pluginVersion")
 
 repositories {
     mavenCentral()
@@ -15,10 +17,16 @@ repositories {
 // Configure Gradle IntelliJ Plugin
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-gradle-intellij-plugin.html
 intellij {
-    version.set("LATEST-EAP-SNAPSHOT")
-    type.set("PS") // Target IDE Platform
+    version.set(properties("platformVersion"))
+    type.set(properties("platformType")) // Target IDE Platform
 
-    plugins.set(listOf())
+    plugins.set(
+        listOf(
+            "JavaScript",
+            "JavaScriptDebugger",
+            "JSIntentionPowerPack",
+        )
+    )
 }
 
 tasks {
@@ -32,8 +40,8 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("232")
-        untilBuild.set("242.*")
+        sinceBuild.set(properties("pluginSinceBuild"))
+        untilBuild.set(properties("pluginUntilBuild"))
     }
 
     signPlugin {
@@ -48,5 +56,5 @@ tasks {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
