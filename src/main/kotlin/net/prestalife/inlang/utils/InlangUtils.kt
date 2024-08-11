@@ -1,16 +1,18 @@
 package net.prestalife.inlang.utils
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.findDocument
-import com.intellij.openapi.vfs.findFile
-import com.intellij.openapi.vfs.findPsiFile
+import com.intellij.openapi.vfs.*
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -40,29 +42,17 @@ class InlangUtils {
             val psiFile = element.containingFile
             var file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
 
-            val folderName = "project.inlang"
-            var folder: VirtualFile = file
-            while (file.parent != null) {
-                val folders = file.parent.children
-                if (folders.any { it.name == folderName }) {
-                    // save message to inlang folder
-                    folder = folders.first { it.name == folderName }
-                }
-                file = file.parent
-            }
+            val folder: VirtualFile = findClosestFolder(file, "project.inlang")
+                ?: return Pair(false, "The project does not contain a folder named project.inlang")
 
-            if (folder.name != folderName) {
-                return Pair(false, "The project does not contain a folder named $folderName")
-            }
-
-            val settings = folder.findChild("settings.json") ?: return Pair(
+            val settings = folder.findFile("settings.json") ?: return Pair(
                 false,
                 "The project does not contain a settings.json file"
             )
             // parse json
             val decodeFormat = Json { ignoreUnknownKeys = true }
             val json = decodeFormat.decodeFromString<Settings>(settings.inputStream.reader().readText())
-            val jsonFile = folder.parent.findChild("messages")?.findFile("${json.sourceLanguageTag}.json")
+            val jsonFile = folder.parent.findDirectory("messages")?.findFile("${json.sourceLanguageTag}.json")
                 ?: return Pair(false, "The project does not contain a messages/${json.sourceLanguageTag}.json file")
 
             val str = ",\"$fnName\": \"$selection\""
@@ -91,8 +81,44 @@ class InlangUtils {
                 }
             }, "Extract Inlang Message", null)
 
-
             return Pair(true, "Message saved")
+        }
+
+        private fun findClosestFolder(
+            file: VirtualFile,
+            folderName: String
+        ): VirtualFile? {
+            var file1 = file
+            var folder: VirtualFile = file1
+            while (file1.parent != null) {
+                val folders = file1.parent.children
+                if (folders.any { it.name == folderName }) {
+                    // save message to inlang folder
+                    folder = folders.first { it.name == folderName }
+                }
+                file1 = file1.parent
+            }
+            return if(folder.name == folderName) folder else null
+        }
+
+        fun readMessages(psiFile:PsiFile): MutableMap<String, String> {
+            val file = psiFile.virtualFile ?: return mutableMapOf()
+            val folder = findClosestFolder(file, "project.inlang") ?: return mutableMapOf()
+
+            val settings = folder.findFile("settings.json") ?: return mutableMapOf()
+            // parse json
+            val decodeFormat = Json { ignoreUnknownKeys = true }
+            val json = decodeFormat.decodeFromString<Settings>(settings.inputStream.reader().readText())
+            val jsonFile = folder.parent.findDirectory("messages")?.findFile("${json.sourceLanguageTag}.json")
+                ?: return mutableMapOf()
+
+            val jsonString = jsonFile.inputStream.reader().readText()
+            val gson = Gson()
+
+            val mapAdapter = gson.getAdapter(object: TypeToken<Map<String, Any?>>() {})
+            val model: Map<String, Any?> = mapAdapter.fromJson(jsonString)
+
+            return model.mapValues { it.value.toString() }.toMutableMap()
         }
     }
 

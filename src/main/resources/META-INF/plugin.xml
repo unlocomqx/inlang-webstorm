@@ -32,6 +32,14 @@
             <className>net.prestalife.inlang.intentions.ExtractInlangMessageIntention</className>
             <category>Inlang Intentions</category>
         </intentionAction>
+        <codeInsight.declarativeInlayProvider group="VALUES_GROUP"
+                                              implementationClass="net.prestalife.inlang.inlays.InlangInlayProvider"
+                                              isEnabledByDefault="true"
+                                              bundle="InlangBundle"
+                                              language="SvelteHTML"
+                                              nameKey="inlang.messages.inlay.provider"
+                                              providerId="inlang-values"/>
+        />
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
