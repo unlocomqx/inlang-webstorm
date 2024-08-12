@@ -8,6 +8,7 @@
     <name>Inlang-webstorm</name>
     <depends>com.intellij.modules.lang</depends>
     <depends>JavaScript</depends>
+    <depends>Svelte</depends>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="prestalife.solutions@gmail.com" url="https://www.prestalife.net">TuniSoft</vendor>
