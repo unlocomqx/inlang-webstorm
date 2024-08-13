@@ -1,10 +1,13 @@
 package net.prestalife.inlang.intentions
 
+import com.esotericsoftware.kryo.kryo5.minlog.Log
 import com.intellij.codeInsight.intention.PsiElementBaseIntentionAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.elementType
 import com.intellij.psi.xml.XmlText
+import com.intellij.util.xml.XmlName
 import net.prestalife.inlang.utils.InlangUtils
 
 class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
@@ -17,29 +20,24 @@ class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
     }
 
     override fun isAvailable(project: Project, editor: Editor?, element: PsiElement): Boolean {
-        return element.parent is XmlText
+        Log.info(element.elementType.toString())
+        return element.parent is XmlText ||
+                element is XmlText ||
+                element.elementType.toString() == "XML_NAME" ||
+                element.elementType.toString() == "SVELTE_HTML_TAG" ||
+                element.parent.elementType.toString() == "SVELTE_HTML_TAG"
     }
 
     override fun invoke(project: Project, editor: Editor?, element: PsiElement) {
-        val selection = editor?.selectionModel?.selectedText?.trim() ?: element.parent.text.trim()
-
-        if (selection.isEmpty()) {
+        if (editor == null) {
             return
         }
-
-        if(editor == null) {
-            return
-        }
-
-        val fnName = InlangUtils.generateFunctionName(selection)
 
         if (element.containingFile != null) {
             val result = InlangUtils.saveMessage(
                 project,
                 editor,
-                element,
-                fnName,
-                selection
+                element
             )
 
             if (result.first) {

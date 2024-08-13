@@ -20,11 +20,16 @@ intellij {
     version.set(properties("platformVersion"))
     type.set(properties("platformType")) // Target IDE Platform
 
+    pluginsRepositories {
+        marketplace()
+    }
+
     plugins.set(
         listOf(
             "JavaScript",
             "JavaScriptDebugger",
             "JSIntentionPowerPack",
+            "dev.blachut.svelte.lang:242.20224.155"
         )
     )
 }

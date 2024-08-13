@@ -29,8 +29,6 @@ class InlangInlayProvider : InlayHintsProvider {
         }
 
         override fun collectFromElement(element: PsiElement, sink: InlayTreeSink) {
-
-            Log.info(element.elementType.toString())
             if (element is JSCallExpression) {
                 if (element.parent.elementType.toString() !== "CONTENT_EXPRESSION") {
                     return

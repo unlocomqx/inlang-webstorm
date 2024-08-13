@@ -2,14 +2,10 @@ package net.prestalife.inlang.utils
 
 import com.intellij.lang.ecmascript6.psi.impl.ES6CreateImportUtil
 import com.intellij.lang.ecmascript6.psi.impl.ES6ImportPsiUtil
-import com.intellij.lang.javascript.formatter.JSCodeStyleSettings
 import com.intellij.lang.javascript.psi.JSEmbeddedContent
 import com.intellij.lang.javascript.psi.impl.JSChangeUtil
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.util.io.FileUtil
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiParserFacade
 import com.intellij.psi.XmlElementFactory
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.PsiTreeUtil
@@ -28,20 +24,17 @@ object Importer {
 
         if (jsElement != null) {
             val existingImports = ES6ImportPsiUtil.getImportDeclarations(jsElement)
-            // check if component has already been imported
+            for (importStatement in existingImports) {
+                if (importStatement.text.contains(importCode)) {
+                    return // Do not insert the same import twice
+                }
+            }
 
             val importStatement = JSChangeUtil.createStatementFromTextWithContext(importCode, jsElement)!!.psi
-            if (existingImports.size == 0) {
-                // findPlaceAndInsertES6Import is buggy when inserting the first import
-                val newLine = PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n")
-                jsElement.addBefore(newLine, jsElement.firstChild)
-                jsElement.addAfter(importStatement, jsElement.firstChild)
-            } else {
-                ES6CreateImportUtil.findPlaceAndInsertAnyImport(
-                    jsElement,
-                    importStatement
-                )
-            }
+            ES6CreateImportUtil.findPlaceAndInsertAnyImport(
+                jsElement,
+                importStatement
+            )
             CodeStyleManager.getInstance(project).reformat(jsElement)
         } else {
             val scriptBlock = XmlElementFactory.getInstance(project)

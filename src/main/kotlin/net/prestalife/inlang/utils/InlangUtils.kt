@@ -1,7 +1,5 @@
 package net.prestalife.inlang.utils
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.intellij.openapi.application.ApplicationManager
@@ -14,6 +12,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.codeStyle.CodeStyleManager
+import com.intellij.psi.util.elementType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.*
@@ -36,8 +35,6 @@ class InlangUtils {
             project: Project,
             editor: Editor,
             element: PsiElement,
-            fnName: String,
-            selection: String
         ): Pair<Boolean, String> {
             val psiFile = element.containingFile
             var file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
@@ -55,6 +52,19 @@ class InlangUtils {
             val jsonFile = folder.parent.findDirectory("messages")?.findFile("${json.sourceLanguageTag}.json")
                 ?: return Pair(false, "The project does not contain a messages/${json.sourceLanguageTag}.json file")
 
+            var selection = editor.selectionModel.selectedText?.trim()
+            val effectiveElement = getEffectiveElement(element)
+
+            if (selection.isNullOrEmpty()) {
+                selection = effectiveElement.text
+            }
+
+            if(selection.isNullOrEmpty()) {
+                return Pair(false, "No changes made")
+            }
+
+            val fnName = generateFunctionName(selection)
+
             val str = ",\"$fnName\": \"$selection\""
 
             val document: Document = jsonFile.findDocument() ?: return Pair(false, "No changes made")
@@ -68,20 +78,34 @@ class InlangUtils {
                     codeStyleManager.reformatText(jsonPsiFile, lastBraceIndex, lastBraceIndex + str.length)
 
                     val message = "{m.$fnName()}"
-                    editor.document.replaceString(
-                        element.parent.textRange.startOffset,
-                        element.parent.textRange.endOffset,
-                        message
-                    )
+                    val start =
+                        if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionStart else effectiveElement.textRange.startOffset
+                    val end =
+                        if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionEnd else effectiveElement.textRange.endOffset
+                    editor.document.replaceString(start, end, message)
 
                     PsiDocumentManager.getInstance(project).commitDocument(editor.document);
                     PsiDocumentManager.getInstance(project).commitDocument(document);
 
-                    Importer.insertImport(editor, psiFile, "import * as m from '\$lib/paraglide/messages';")
+                    Importer.insertImport(editor, psiFile, "import * as m from '\$lib/paraglide/messages'")
                 }
             }, "Extract Inlang Message", null)
 
             return Pair(true, "Message saved")
+        }
+
+        private fun getEffectiveElement(element: PsiElement): PsiElement {
+            return when (element.elementType.toString()) {
+                "XML_NAME" -> {
+                    element
+                }
+                "SVELTE_HTML_TAG" -> {
+                    element
+                }
+                else -> {
+                    element.parent
+                }
+            }
         }
 
         private fun findClosestFolder(
@@ -98,10 +122,10 @@ class InlangUtils {
                 }
                 file1 = file1.parent
             }
-            return if(folder.name == folderName) folder else null
+            return if (folder.name == folderName) folder else null
         }
 
-        fun readMessages(psiFile:PsiFile): MutableMap<String, String> {
+        fun readMessages(psiFile: PsiFile): MutableMap<String, String> {
             val file = psiFile.virtualFile ?: return mutableMapOf()
             val folder = findClosestFolder(file, "project.inlang") ?: return mutableMapOf()
 
@@ -115,7 +139,7 @@ class InlangUtils {
             val jsonString = jsonFile.inputStream.reader().readText()
             val gson = Gson()
 
-            val mapAdapter = gson.getAdapter(object: TypeToken<Map<String, Any?>>() {})
+            val mapAdapter = gson.getAdapter(object : TypeToken<Map<String, Any?>>() {})
             val model: Map<String, Any?> = mapAdapter.fromJson(jsonString)
 
             return model.mapValues { it.value.toString() }.toMutableMap()
