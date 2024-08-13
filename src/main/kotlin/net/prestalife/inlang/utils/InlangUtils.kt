@@ -37,7 +37,7 @@ class InlangUtils {
             element: PsiElement,
         ): Pair<Boolean, String> {
             val psiFile = element.containingFile
-            var file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
+            val file: VirtualFile = psiFile.virtualFile ?: return Pair(false, "No changes made")
 
             val folder: VirtualFile = findClosestFolder(file, "project.inlang")
                 ?: return Pair(false, "The project does not contain a folder named project.inlang")
@@ -59,7 +59,7 @@ class InlangUtils {
                 selection = effectiveElement.text
             }
 
-            if(selection.isNullOrEmpty()) {
+            if (selection.isNullOrEmpty()) {
                 return Pair(false, "No changes made")
             }
 
@@ -84,8 +84,8 @@ class InlangUtils {
                         if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionEnd else effectiveElement.textRange.endOffset
                     editor.document.replaceString(start, end, message)
 
-                    PsiDocumentManager.getInstance(project).commitDocument(editor.document);
-                    PsiDocumentManager.getInstance(project).commitDocument(document);
+                    PsiDocumentManager.getInstance(project).commitDocument(editor.document)
+                    PsiDocumentManager.getInstance(project).commitDocument(document)
 
                     Importer.insertImport(editor, psiFile, "import * as m from '\$lib/paraglide/messages'")
                 }
@@ -99,9 +99,11 @@ class InlangUtils {
                 "XML_NAME" -> {
                     element
                 }
+
                 "SVELTE_HTML_TAG" -> {
                     element
                 }
+
                 else -> {
                     element.parent
                 }
