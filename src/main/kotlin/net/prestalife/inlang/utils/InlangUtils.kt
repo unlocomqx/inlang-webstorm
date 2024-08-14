@@ -23,7 +23,7 @@ data class Settings(val sourceLanguageTag: String)
 
 class InlangUtils {
     companion object {
-        fun generateFunctionName(selection: String): String {
+        private fun generateFunctionName(selection: String): String {
             // convert selection to a valid javascript function name
             // cut at 20 characters
             return selection.replace(" ", "_")
@@ -66,6 +66,11 @@ class InlangUtils {
             val fnName = generateFunctionName(selection)
 
             val str = ",\"$fnName\": \"$selection\""
+            val message = "{m.$fnName()}"
+            val start =
+                if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionStart else effectiveElement.textRange.startOffset
+            val end =
+                if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionEnd else effectiveElement.textRange.endOffset
 
             val document: Document = jsonFile.findDocument() ?: return Pair(false, "No changes made")
             CommandProcessor.getInstance().executeCommand(project, {
@@ -77,15 +82,10 @@ class InlangUtils {
                     val codeStyleManager = CodeStyleManager.getInstance(project)
                     codeStyleManager.reformatText(jsonPsiFile, lastBraceIndex, lastBraceIndex + str.length)
 
-                    val message = "{m.$fnName()}"
-                    val start =
-                        if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionStart else effectiveElement.textRange.startOffset
-                    val end =
-                        if (editor.selectionModel.hasSelection()) editor.selectionModel.selectionEnd else effectiveElement.textRange.endOffset
                     editor.document.replaceString(start, end, message)
 
-                    PsiDocumentManager.getInstance(project).commitDocument(editor.document)
                     PsiDocumentManager.getInstance(project).commitDocument(document)
+                    PsiDocumentManager.getInstance(project).commitDocument(editor.document)
 
                     Importer.insertImport(editor, psiFile, "import * as m from '\$lib/paraglide/messages'")
                 }

@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.elementType
 import com.intellij.psi.xml.XmlText
-import com.intellij.util.xml.XmlName
 import net.prestalife.inlang.utils.InlangUtils
 
 class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
@@ -41,7 +40,6 @@ class ExtractInlangMessageIntention : PsiElementBaseIntentionAction() {
             )
 
             if (result.first) {
-
             } else {
                 // show error message
 
