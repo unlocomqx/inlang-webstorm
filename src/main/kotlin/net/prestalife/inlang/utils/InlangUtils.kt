@@ -15,7 +15,9 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.util.elementType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.*
+import java.net.JarURLConnection
+import java.nio.file.Files
+import java.nio.file.Path
 
 
 @Serializable
@@ -23,12 +25,24 @@ data class Settings(val sourceLanguageTag: String)
 
 class InlangUtils {
     companion object {
-        private fun generateFunctionName(selection: String): String {
-            // convert selection to a valid javascript function name
-            // cut at 20 characters
-            return selection.replace(" ", "_")
-                .lowercase(Locale.getDefault())
-                .take(20)
+        private fun generateFunctionName(selection: String): String? {
+            // generate random human-readable function name
+            // https://github.com/opral/monorepo/issues/1892
+
+            val script = getScript("/node") ?: return null
+            val result = ScriptRunner.run("node \"${script}/src/random-id.mjs\"")
+            return result ?: selection
+        }
+
+        private fun getScript(scriptName: String): Path? {
+            val script = getResource(scriptName) ?: return null
+            val tmpdir = System.getProperty("java.io.tmpdir")
+            val tmpPath = Path.of(tmpdir)
+            val scriptPath = Path.of(tmpdir, script.file.substringAfterLast('/'))
+            if (!Files.exists(scriptPath)) {
+                copyJarResourcesRecursively(tmpPath, script.openConnection() as JarURLConnection)
+            }
+            return scriptPath
         }
 
         fun saveMessage(
@@ -63,7 +77,8 @@ class InlangUtils {
                 return Pair(false, "No changes made")
             }
 
-            val fnName = generateFunctionName(selection)
+            val fnName =
+                generateFunctionName(selection) ?: return Pair(false, "The function name could not be generated!")
 
             val str = ",\"$fnName\": \"$selection\""
             val message = "{m.$fnName()}"
